@@ -7,15 +7,20 @@ from binance.client import Client
 import datetime as dt
 
 SYMBOL = input("Enter the SYMBOL like [BTCUSDT]: ").upper()
+CURRENCY_NAME = input("Enter the CURRENCY_NAME like [BTC OR BNB OR ETH]: ").upper()
 QUANTITY = float(input("Enter BUY Quantity: "))
 indicator = int(input("Enter the indicator (1 for EMA, 2 for RSI, 3 for Bollinger Bands): "))
 INTERVAL = input("select one of these timeframes format: 1m [1m,3m,5m,15m,30m,1h,2h,4h,6h,8h,12h,1d,3d,1w,1M]: ")
+
+if CURRENCY_NAME not in SYMBOL:
+    print("Currency Name doesn't match with SYMBOL")
+    exit()
 
 # Binance API credentials
 API_KEY = input("Enter API KEY: ")
 API_SECRET = input("Enter API SECRET: ")
 
-client = Client(config.API_KEY, config.API_SECRET)
+client = Client(API_KEY, API_SECRET)
 
 ######################################################### below code keeps changing #################################
 
@@ -156,17 +161,13 @@ def process_message(msg):
             print(f"========== : Signal: [{signal}] : =========")
 
             if signal == 'BUY' and buy_price == 0:
-                BUY_ORDERS += 1
                 
                 # Place a buy order
-                order = client.create_order(
-                    symbol=SYMBOL,
-                    side=Client.SIDE_BUY,
-                    type=Client.ORDER_TYPE_MARKET,
-                    quantity=0.001)  # Replace with your desired quantity
-                
+                order = client.order_market_buy(symbol=SYMBOL,quantity=QUANTITY)
+
                 print('Buy order placed:', order)
                 
+                BUY_ORDERS += 1
                 buy_price = order['fills'][0]['price']
                 buy_date = date
                 
@@ -181,17 +182,20 @@ Buy Date: {buy_date}
                 ORDERS_FILE.write(txt)
 
             elif signal == 'SELL' and sell_price == 0 and buy_price != 0:
-                SELL_ORDERS += 1
-                
-                # Place a sell order
-                order = client.create_order(
+
+                # Get the available balance for TRB
+                balance = client.get_asset_balance(asset=CURRENCY_NAME)
+                available_quantity = float(balance['free'])
+
+                # Place a market sell order with the available quantity
+                order = client.order_market_sell(
                     symbol=SYMBOL,
-                    side=Client.SIDE_SELL,
-                    type=Client.ORDER_TYPE_MARKET,
-                    quantity=0.001)  # Replace with your desired quantity
-                
+                    quantity=available_quantity
+                )
+
                 print('Sell order placed:', order)
                 
+                SELL_ORDERS += 1
                 sell_price = order['fills'][0]['price']
                 sell_date = date
                 profit += sell_price - buy_price
@@ -225,3 +229,76 @@ while True:
     pass
 twm.stop()
 check = input("Press any key and enter to exit: ")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+MY BUY ORDER
+{
+    "symbol": "TRBUSDT",
+    "orderId": 719457906,
+    "orderListId": -1,
+    "clientOrderId": "jBQeYUDHuDGxmRWlsmeSID",
+    "transactTime": 1697118377654,
+    "price": "0.00000000",
+    "origQty": "0.13000000",
+    "executedQty": "0.13000000",
+    "cummulativeQuoteQty": "5.98910000",
+    "status": "FILLED",
+    "timeInForce": "GTC",
+    "type": "MARKET",
+    "side": "BUY",
+    "workingTime": 1697118377654,
+    "fills": [
+        {
+            "price": "46.07000000",
+            "qty": "0.13000000",
+            "commission": "0.00002188",
+            "commissionAsset": "BNB",
+            "tradeId": 33472552
+        }
+    ],
+    "selfTradePreventionMode": "NONE"
+}
+
+MY SELL ORDER
+{
+    "symbol": "TRBUSDT",
+    "orderId": 719473119,
+    "orderListId": -1,
+    "clientOrderId": "aLfyiFMxihEyOmS1c07Hic",
+    "transactTime": 1697119485944,
+    "price": "0.00000000",
+    "origQty": "0.13000000",
+    "executedQty": "0.13000000",
+    "cummulativeQuoteQty": "6.01380000",
+    "status": "FILLED",
+    "timeInForce": "GTC",
+    "type": "MARKET",
+    "side": "SELL",
+    "workingTime": 1697119485944,
+    "fills": [
+        {
+            "price": "46.26000000",
+            "qty": "0.13000000",
+            "commission": "0.00002187",
+            "commissionAsset": "BNB",
+            "tradeId": 33472883
+        }
+    ],
+    "selfTradePreventionMode": "NONE"
+}
+
+"""
