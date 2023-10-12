@@ -161,62 +161,75 @@ def process_message(msg):
             print(f"========== : Signal: [{signal}] : =========")
 
             if signal == 'BUY' and buy_price == 0:
-                
-                # Place a buy order
-                order = client.order_market_buy(symbol=SYMBOL,quantity=QUANTITY)
 
-                print('Buy order placed:', order)
-                
-                BUY_ORDERS += 1
-                buy_price = order['fills'][0]['price']
-                buy_date = date
-                
-                txt = f"""
+                try:
+                    # Place a buy order
+                    order = client.order_market_buy(symbol=SYMBOL,quantity=QUANTITY)
+
+                    print('Buy order placed:', order)
+                    
+                    BUY_ORDERS += 1
+                    buy_price = order['fills'][0]['price']
+                    buy_date = date
+                    
+                    txt = f"""
 ============================================
 BUY_ORDERS: {BUY_ORDERS}
 Buy Price: {buy_price}
 Buy Date: {buy_date}
 ============================================
-                """
-                print(txt)
-                ORDERS_FILE.write(txt)
+                    """
+                    print(txt)
+                    ORDERS_FILE.write(txt)
+
+                except Exception as e:
+                    print("[ERROR] occured while placing order, error code and description is given below, copy and google it to know what exactly went wrong")
+                    print(e)
+                    check = input("Press any key and enter to exit [copy the error code and desc before exiting]: ")
+                    exit()
+                
 
             elif signal == 'SELL' and sell_price == 0 and buy_price != 0:
+                try:
+                    # Get the available balance for TRB
+                    balance = client.get_asset_balance(asset=CURRENCY_NAME)
+                    available_quantity = float(balance['free'])
 
-                # Get the available balance for TRB
-                balance = client.get_asset_balance(asset=CURRENCY_NAME)
-                available_quantity = float(balance['free'])
+                    # Place a market sell order with the available quantity
+                    order = client.order_market_sell(
+                        symbol=SYMBOL,
+                        quantity=available_quantity
+                    )
 
-                # Place a market sell order with the available quantity
-                order = client.order_market_sell(
-                    symbol=SYMBOL,
-                    quantity=available_quantity
-                )
-
-                print('Sell order placed:', order)
-                
-                SELL_ORDERS += 1
-                sell_price = order['fills'][0]['price']
-                sell_date = date
-                profit += sell_price - buy_price
-                
-                txt = f"""
+                    print('Sell order placed:', order)
+                    
+                    SELL_ORDERS += 1
+                    sell_price = order['fills'][0]['price']
+                    sell_date = date
+                    profit += sell_price - buy_price
+                    
+                    txt = f"""
 ============================================
 SELL_ORDERS: {SELL_ORDERS}
 Sell Price: {sell_price}
 Sell Date: {sell_date}
 Profit: {profit}
 ============================================
-                """
-                print(txt)
-                ORDERS_FILE.write(txt)
-                
-                # Reset buy and sell prices and dates
-                buy_price = 0
-                sell_price = 0
-                buy_date = None
-                sell_date = None
+                    """
+                    print(txt)
+                    ORDERS_FILE.write(txt)
+                    
+                    # Reset buy and sell prices and dates
+                    buy_price = 0
+                    sell_price = 0
+                    buy_date = None
+                    sell_date = None
 
+                except Exception as e:
+                    print("[ERROR] occured while placing order, error code and description is given below, copy and google it to know what exactly went wrong")
+                    print(e)
+                    check = input("Press any key and enter to exit [copy the error code and desc before exiting]: ")
+                    exit()
 
 # Run the strategy
 print("Subscribing to WebSocket stream")
